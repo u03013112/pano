@@ -1,0 +1,16 @@
+version: '2'
+
+services: 
+  pano:
+    image: u03013112/opencv4:v1
+    container_name: 'pano'
+    tty: true
+    volumes:
+        - ../:/src:cached
+    working_dir: /src/
+    network_mode: host
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "1"
