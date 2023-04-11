@@ -40,19 +40,18 @@ def buildmap(Ws, Hs, Wd, Hd, fov=180.0):
 
 # 修改fisheye2Equirectangular，添加参数needShow，默认是False
 # 如果needShow是False，就不再显示图片
-def fisheye2Equirectangular(fisheye_image, fov_degrees):
+def fisheye2Equirectangular(fisheye_image, fov_degrees, needShow=False):
     src_height, src_width, _ = fisheye_image.shape
-    # dst_width = int(src_width * 360 / fov_degrees)
-    # dst_height = int(src_height * 180 / fov_degrees)
     dst_width = src_width
     dst_height = src_height
 
     map_x, map_y = buildmap(src_width, src_height, dst_width, dst_height, fov_degrees)
     equirectangular_image = cv2.remap(fisheye_image, map_x, map_y, cv2.INTER_LINEAR)
 
-    cv2.imshow('Equirectangular Image', equirectangular_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if needShow:
+        cv2.imshow('Equirectangular Image', equirectangular_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     return equirectangular_image
 

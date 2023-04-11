@@ -15,7 +15,7 @@ import os
 # 如果needShow为False，就不再需要调整图片的圆心和半径，也不再显示图片到窗口
 # 如果needShow为False并且并未找到相同文件名的txt文件，就报错，提示必须先执行此函数并且needShow = Ture进行调整
 
-def readFishEyePic(image_path): 
+def readFishEyePic(image_path, needShow=False):
     def detect_circle_center(image): 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
         blur = cv2.GaussianBlur(gray, (5, 5), 0) 
@@ -55,51 +55,56 @@ def readFishEyePic(image_path):
         with open(txt_path, 'r') as f:
             x, y, r = map(int, f.readline().strip().split())
     else:
-        circle_center = detect_circle_center(image)
-        if circle_center is not None:
-            x, y, r = circle_center
+        if needShow:
+            circle_center = detect_circle_center(image)
+            if circle_center is not None:
+                x, y, r = circle_center
+            else:
+                print("Error: Could not detect circle center.")
+                return
         else:
-            print("Error: Could not detect circle center.")
-            return
+            raise FileNotFoundError("Error: Could not find the txt file with circle center and radius. Please run this function with needShow=True to adjust the parameters first.")
 
-    step = int(0.005 * max(image.shape[:2]))
-    while True:
-        # 在图像上绘制圆心和圆
-        image_with_center = draw_circle_center(image, (x, y, r))
+    if needShow:
+        step = int(0.005 * max(image.shape[:2]))
+        while True:
+            # 在图像上绘制圆心和圆
+            image_with_center = draw_circle_center(image, (x, y, r))
 
-        # 显示绘制圆心和圆后的图像
-        cv2.imshow('Image with Circle Center and Circle', image_with_center)
+            # 显示绘制圆心和圆后的图像
+            cv2.imshow('Image with Circle Center and Circle', image_with_center)
 
-        # 获取键盘输入
-        key = cv2.waitKey(0) & 0xFF
+            # 获取键盘输入
+            key = cv2.waitKey(0) & 0xFF
 
-        # 根据键盘输入调整圆心和半径
-        if key == ord('a'):
-            x -= step
-        elif key == ord('s'):
-            y += step
-        elif key == ord('w'):
-            y -= step
-        elif key == ord('d'):
-            x += step
-        elif key == ord('q'):
-            r -= step
-        elif key == ord('e'):
-            r += step
-        elif key == 13:  # 回车键
-            break
+            # 根据键盘输入调整圆心和半径
+            if key == ord('a'):
+                x -= step
+            elif key == ord('s'):
+                y += step
+            elif key == ord('w'):
+                y -= step
+            elif key == ord('d'):
+                x += step
+            elif key == ord('q'):
+                r -= step
+            elif key == ord('e'):
+                r += step
+            elif key == 13:  # 回车键
+                break
 
-    # 保存圆心和半径到文件
-    with open(txt_path, 'w') as f:
-        f.write(f'{x} {y} {r}\n')
+        # 保存圆心和半径到文件
+        with open(txt_path, 'w') as f:
+            f.write(f'{x} {y} {r}\n')
 
     # 裁剪图片
     cropped_image = crop_image(image, (x, y, r))
 
-    # 显示裁剪后的图片
-    cv2.imshow('Cropped Image', cropped_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if needShow:
+        # 显示裁剪后的图片
+        cv2.imshow('Cropped Image', cropped_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     return cropped_image
 
@@ -107,5 +112,5 @@ if __name__ == '__main__':
     # img = readFishEyePic('pics/Left.jpg')
     # cv2.imwrite('pics/croppedLeft.jpg', img)
 
-    img = readFishEyePic('pics/21.jpg')
+    img = readFishEyePic('pics/21.jpg', needShow=True)
     cv2.imwrite('pics/cropped21.jpg', img)
