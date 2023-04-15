@@ -59,3 +59,9 @@ if __name__ == '__main__':
     fisheye_image = image = cv2.imread('pics/croppedLeft.jpg')
     fov_degrees = 210
     equirectangular_image = fisheye2Equirectangular(fisheye_image, fov_degrees)
+    cv2.imwrite('pics/equirectangularLeft.jpg',equirectangular_image)
+
+    fisheye_image = image = cv2.imread('pics/croppedRight.jpg')
+    fov_degrees = 210
+    equirectangular_image = fisheye2Equirectangular(fisheye_image, fov_degrees)
+    cv2.imwrite('pics/equirectangularRight.jpg',equirectangular_image)

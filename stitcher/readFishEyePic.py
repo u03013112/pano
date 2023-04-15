@@ -112,5 +112,8 @@ if __name__ == '__main__':
     # img = readFishEyePic('pics/Left.jpg')
     # cv2.imwrite('pics/croppedLeft.jpg', img)
 
-    img = readFishEyePic('pics/21.jpg', needShow=True)
-    cv2.imwrite('pics/cropped21.jpg', img)
+    # img = readFishEyePic('pics/21.jpg', needShow=True)
+    # cv2.imwrite('pics/cropped21.jpg', img)
+
+    img = readFishEyePic('pics/Right.jpg')
+    cv2.imwrite('pics/croppedRight.jpg', img)
