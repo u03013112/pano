@@ -107,5 +107,6 @@ def main(video_path, left_txt_path, right_txt_path):
     cap.release()
     cv2.destroyAllWindows()
 
-# 示例调用
-main('mp4/c2.mp4', 'pics/left.txt', 'pics/right.txt')
+if __name__ == '__main__':
+    # 示例调用
+    main('mp4/c2.mp4', 'pics/left.txt', 'pics/right.txt')
