@@ -1,0 +1,3 @@
+# input.pto
+p f2 w512 h512 v210  E0 R0 n"JPEG_m"
+i w512 h512 f3 v210  E0 R0 y0 p0 r0 n"pics/r.jpg"
