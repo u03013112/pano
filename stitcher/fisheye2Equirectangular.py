@@ -55,13 +55,29 @@ def fisheye2Equirectangular(fisheye_image, fov_degrees, needShow=False):
 
     return equirectangular_image
 
+import os
+import sys
 if __name__ == '__main__':
-    fisheye_image = image = cv2.imread('pics/croppedLeft.jpg')
-    fov_degrees = 210
-    equirectangular_image = fisheye2Equirectangular(fisheye_image, fov_degrees)
-    cv2.imwrite('pics/equirectangularLeft.jpg',equirectangular_image)
+    if len(sys.argv) < 2:
+        print("错误：请输入图片文件名")
+        print("用法：python readFishEyePic.py 图片文件名")
+        sys.exit(1)
 
-    fisheye_image = image = cv2.imread('pics/croppedRight.jpg')
+    img_filename = sys.argv[1]
+    base_path, file_name = os.path.split(img_filename)
+    file_name_without_ext = os.path.splitext(file_name)[0]
+    file_name_ext = os.path.splitext(file_name)[1]
+    leftFilePath = os.path.join(base_path, file_name_without_ext + 'Left' + file_name_ext)
+    leftOutFilePath = os.path.join(base_path, file_name_without_ext + 'LeftEC' + file_name_ext)
+    rightFilePath = os.path.join(base_path, file_name_without_ext + 'Right' + file_name_ext)
+    rightOutFilePath = os.path.join(base_path, file_name_without_ext + 'RightEC' + file_name_ext)
+
+    fisheye_image = image = cv2.imread(leftFilePath)
     fov_degrees = 210
     equirectangular_image = fisheye2Equirectangular(fisheye_image, fov_degrees)
-    cv2.imwrite('pics/equirectangularRight.jpg',equirectangular_image)
+    cv2.imwrite(leftOutFilePath,equirectangular_image)
+
+    fisheye_image = image = cv2.imread(rightFilePath)
+    fov_degrees = 210
+    equirectangular_image = fisheye2Equirectangular(fisheye_image, fov_degrees)
+    cv2.imwrite(rightOutFilePath,equirectangular_image)

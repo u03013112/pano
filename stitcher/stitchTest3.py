@@ -139,6 +139,17 @@ def main():
 
     cv2.imwrite('pics/stitched_result.jpg', stitched_result)
 
+def main2():
+    img2_full = cv2.imread('pics2/230514_104354LeftEC.jpg')
+    img1_full = cv2.imread('pics2/230514_104354RightEC.jpg')
+
+    control_points1, control_points2 = get_control_points(img1_full, img2_full)
+    matched_image = draw_matches(img1_full, img2_full, control_points1, control_points2)
+    cv2.imwrite('pics2/stitched21_mid.jpg', matched_image)
+
+    stitched_result = stitch_images(img1_full, img2_full, control_points1, control_points2)
+
+    cv2.imwrite('pics2/stitched_result.jpg', stitched_result)
 
 if __name__ == "__main__":
-    main()
+    main2()

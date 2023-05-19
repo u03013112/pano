@@ -1,11 +1,6 @@
-# 输入图片路径，路径类似'pics/Left.jpg'
-# 读取指定路径的图片，并在相同目录下，找到相同文件名的txt文件，读取圆心和半径，格式是'{x} {y} {r}'。
-# 如果没有找到相同文件名的txt文件，就使用opencv去找默认的圆心和半径。
-# 在窗口中显示图片，并用显著的颜色画出圆形和半径。
-# 用键盘调整圆心和半径，A,S,W,D，移动圆心，Q,E，调整半径。按照图片尺寸调整步长，每次0.5%。
-# 调整好之后输入回车，保存圆心和半径到txt文件。
-# 最后按照圆心和半径裁剪图片，裁剪成一个与圆形外切的正方形，超出画面的部分用黑色填充。
-# 返回裁剪后的图片。展示在窗口中。按回车退出
+# 与readFishEyePic的区别是，这是读取一张拼接图片
+# 先将图片平均分为左右两部分，然后再分别进行readFishEyePic逻辑
+# 最终保存文件名为 输入文件名+ 'Left' / 'Right'
 
 import cv2 
 import numpy as np 
@@ -108,6 +103,12 @@ def readFishEyePic(image_path, needShow=False):
 
     return cropped_image
 
+def split_image(image):
+    height, width, _ = image.shape
+    left_image = image[:, :width // 2]
+    right_image = image[:, width // 2:]
+    return left_image, right_image
+
 import sys
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -116,6 +117,20 @@ if __name__ == '__main__':
         sys.exit(1)
 
     img_filename = sys.argv[1]
-    img = readFishEyePic(img_filename)
-    output_filename = 'cropped_' + img_filename
-    cv2.imwrite(output_filename, img)
+    img = cv2.imread(img_filename)
+    left_img, right_img = split_image(img)
+
+    base_path, file_name = os.path.split(img_filename)
+    file_name_without_ext = os.path.splitext(file_name)[0]
+    file_name_ext = os.path.splitext(file_name)[1]
+    leftFilePath = os.path.join(base_path, file_name_without_ext + 'Left' + file_name_ext)
+    rightFilePath = os.path.join(base_path, file_name_without_ext + 'Right' + file_name_ext)
+
+    cv2.imwrite(leftFilePath, left_img)
+    cv2.imwrite(rightFilePath, right_img)
+
+    left_fisheye_img = readFishEyePic(leftFilePath,True)
+    right_fisheye_img = readFishEyePic(rightFilePath,True)
+
+    cv2.imwrite(leftFilePath, left_fisheye_img)
+    cv2.imwrite(rightFilePath, right_fisheye_img)
