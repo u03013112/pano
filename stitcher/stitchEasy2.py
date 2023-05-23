@@ -1,112 +1,56 @@
 import cv2
 import numpy as np
-import time
 
-from fisheye2Equirectangular import fisheye2Equirectangular
+def main():
+    # 创建两个320x240的黑色图像
+    img1 = np.zeros((240, 320, 3), dtype=np.uint8)
+    img2 = np.zeros((240, 320, 3), dtype=np.uint8)
 
-def readCircleParams(filename):
-    with open(filename, 'r') as f:
-        x, y, r = map(int, f.readline().split())
-    return x, y, r
+    # 在img1上画一个红色矩形
+    cv2.rectangle(img1, (5, 5), (315, 235), (0, 0, 255), 2)
 
-def cropCircle(image, x, y, r):
-    height, width = image.shape[:2]
+    # 在img2上画一个绿色矩形
+    cv2.rectangle(img2, (5, 5), (315, 235), (0, 255, 0), 2)
 
-    mask = np.zeros((height, width), np.uint8)
-    cv2.circle(mask, (x, y), r, 255, -1)
-    cropped = cv2.bitwise_and(image, image, mask=mask)
+    # # 计算平移矩阵M
+    # M = np.float32([[1, 0, 300], [0, 1, 0]])
 
-    newImage = np.zeros((2 * r, 2 * r, 3), np.uint8)
+    # 定义写死的control_points1和control_points2
+    # control_points1 = np.float32([[10, 10], [310, 10], [10, 230], [310, 230]])
+    # control_points2 = np.float32([[310, 10], [610, 10], [310, 230], [610, 230]])
 
-    top = max(0, y - r)
-    bottom = min(height, y + r)
-    left = max(0, x - r)
-    right = min(width, x + r)
-
-    newTop = r - (y - top)
-    newBottom = r + (bottom - y)
-    newLeft = r - (x - left)
-    newRight = r + (right - x)
-
-    newImage[newTop:newBottom, newLeft:newRight] = cropped[top:bottom, left:right]
-
-    height, width = newImage.shape[:2]
-    return newImage
-
-def resizeToMatchHeight(image1, image2):
-    height1, width1 = image1.shape[:2]
-    height2, width2 = image2.shape[:2]
-    minHeight = min(height1, height2)
-
-    if height1 > minHeight:
-        scaleRatio = minHeight / height1
-        newWidth = int(width1 * scaleRatio)
-        image1 = cv2.resize(image1, (newWidth, minHeight))
-    if height2 > minHeight:
-        scaleRatio = minHeight / height2
-        newWidth = int(width2 * scaleRatio)
-        image2 = cv2.resize(image2, (newWidth, minHeight))
-    return image1, image2
+    control_points1 = np.float32([[10, 15], [310, 15], [10, 235], [310, 235]])
+    control_points2 = np.float32([[310, 10], [610, 9], [310, 240], [610, 240]])
 
 
-def stitch_images(frame, leftX, leftY, leftR, rightX, rightY, rightR):
-    height, width = frame.shape[:2]
-    mid = width // 2
-    leftFrame = frame[:, :mid]
-    rightFrame = frame[:, mid:]
+    # 计算透视变换矩阵M
+    M = cv2.getPerspectiveTransform(control_points1, control_points2)
+    print('M:',M)
+    
+    # 使用透视变换矩阵将图像1变换到图像2
+    img1_transformed = cv2.warpPerspective(img1, M, (img1.shape[1] * 2 - 10, img1.shape[0]))
 
-    croppedLeft = cropCircle(leftFrame, leftX, leftY, leftR)
-    croppedRight = cropCircle(rightFrame, rightX, rightY, rightR)
+    # 获取非重叠部分
+    non_overlap1 = img1_transformed[:, 320:]
 
-    croppedLeft, croppedRight = resizeToMatchHeight(croppedLeft, croppedRight)
+    non_overlap2 = img2[:, :310]
 
-    equirectangularLeft = fisheye2Equirectangular(croppedLeft, 210)
-    equirectangularRight = fisheye2Equirectangular(croppedRight, 210)
+    # 获取重叠部分
+    overlap1 = img1_transformed[:, 310:320]
 
-    stitched = cv2.hconcat([equirectangularLeft, equirectangularRight])
-    return stitched
+    overlap2 = img2[:, 310:]
+    overlap2 = cv2.resize(overlap2, (overlap1.shape[1], overlap1.shape[0]))  # 调整overlap2的大小以匹配overlap1
 
-def main(video_path, left_txt_path, right_txt_path):
-    leftX, leftY, leftR = readCircleParams(left_txt_path)
-    rightX, rightY, rightR = readCircleParams(right_txt_path)
+    # 将重叠部分加权合并
+    overlap_result = cv2.addWeighted(overlap1, 0.5, overlap2, 0.5, 0)
 
-    cap = cv2.VideoCapture(video_path)
-    rawFps = int(cap.get(cv2.CAP_PROP_FPS))
+    # 按顺序组合非重叠部分和重叠部分
+    result = np.hstack((non_overlap2, overlap_result, non_overlap1))
 
-    frameCounter = 0
-    startTime = time.time()
-    realFps = 0
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        frameCounter += 1
-        elapsedTime = time.time() - startTime
-
-        stitched = stitch_images(frame, leftX, leftY, leftR, rightX, rightY, rightR)
-
-        if elapsedTime >= 1:
-            realFps = frameCounter
-            frameCounter = 0
-            startTime = time.time()
-
-        realFpsText = f"REAL FPS: {realFps}"
-        rawFpsText = f"RAW FPS: {rawFps}"
-        cv2.putText(stitched, realFpsText, (stitched.shape[1] - 150, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
-        cv2.putText(stitched, rawFpsText, (stitched.shape[1] - 150, 60),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
-
-        cv2.imshow('Stitched Image', stitched)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
+    # 显示结果
+    cv2.imshow('result', result)
+    cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    # 示例调用
-    main('mp4/c2.mp4', 'pics/left.txt', 'pics/right.txt')
+    main()
