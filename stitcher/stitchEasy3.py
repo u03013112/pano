@@ -106,11 +106,114 @@ def stitch(img1,img2):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def translate_image_y(img, y_offset):
+    translated_img = np.zeros_like(img)
+    if y_offset > 0:
+        translated_img[y_offset:, :] = img[:-y_offset, :]
+    elif y_offset < 0:
+        translated_img[:y_offset, :] = img[-y_offset:, :]
+    else:
+        translated_img = img.copy()
+    return translated_img
+
+# 对步骤进行优化
+def stitch2(img1,img2):
+    print('img1.shape:',img1.shape)
+    print('img2.shape:',img2.shape)
+    # 将两张图片的shape调整为一致，按照较小的那张图片的shape进行调整
+    if img1.shape[0] < img2.shape[0]:
+        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+    else:
+        img1 = cv2.resize(img1, (img2.shape[1], img2.shape[0]))
+    # 将img2分成两部分
+    img2_left = img2[:, :int(img2.shape[1] / 2)]
+    img2_right = img2[:, int(img2.shape[1] / 2):]
+
+    # 计算 img2_right 和 img1 的特征点
+    control_points1, control_points2 = get_control_points_flann(img2_right, img1)
+    overlap_width1 = img2_right.shape[1] - int(min(control_points1, key=lambda x: x[0])[0]) + int(min(control_points2, key=lambda x: x[0])[0])
+    # 计算 偏移均值left
+    dv1 = np.mean(control_points1 - control_points2, axis=0)
+
+    # 计算 img1 和 img2_left 的特征点
+    control_points1, control_points2 = get_control_points_flann(img1, img2_left)
+    overlap_width2 = img1.shape[1] - int(min(control_points1, key=lambda x: x[0])[0]) + int(min(control_points2, key=lambda x: x[0])[0])
+    # 计算 偏移均值right
+    dv2 = np.mean(control_points1 - control_points2, axis=0)
+
+    print('dv1:',dv1)
+    print('dv2:',dv2)
+    print('overlap_width1:',overlap_width1)
+    print('overlap_width2:',overlap_width2)
+
+    # 尝试对 偏移均值left 和 偏移均值right 进行统一，最好是个轴对称，如果不是会很麻烦，需要调整两个摄像头的物理位置
+    # 由于一个是img2_right 和 img1，另一个是 img1 和 img2_left，所以他们的dv[1]是相反数
+    # 对dv[1]取平均值，再按照原来的符号赋值给dv[1]
+    dv1[1] = -dv1[1]
+    avg_dv1 = (dv1[1] + dv2[1]) / 2
+    dv1[1] = -avg_dv1
+    dv2[1] = avg_dv1
+
+    print('dv1:',dv1)
+    print('dv2:',dv2)
+
+    # 左右的接缝宽度暂时不做处理
+
+    # 计算画布的应有尺寸
+    # 应有尺寸的宽度应该是 img1.shape[1] + img2.shape[1] - overlap_width1 - overlap_width2
+    # 应有尺寸的高度应该是 img1.shape[0]，这里以img1的高度为准
+    # 制作一个空的画布
+    stitchedResult = np.zeros((img1.shape[0], img1.shape[1] + img2.shape[1] - overlap_width1 - overlap_width2, 3), dtype=np.uint8)
+    # 先放img1，他的高度是不做修正的
+    # 他的位置应该是在img2_right的宽度 - overlap_width1
+    stitchedResult[:, img2_right.shape[1] - overlap_width1:img2_right.shape[1] - overlap_width1 + img1.shape[1]] = img1
+
+    # 计算并将img2_right放在左侧
+    # 先将img2_right上下平移，平移量为dv1[1]*-1
+    img2_right_translated = translate_image_y(img2_right, int(dv1[1]*-1))
+    # 将img2_right_translated放在stitchedResult的左侧
+    stitchedResult[:, :img2_right.shape[1]] = img2_right_translated[:, :img2_right.shape[1]]
+
+    # 计算并将img2_left放在右侧
+    # 先将img2_left上下平移，平移量为dv2[1]
+    img2_left_translated = translate_image_y(img2_left, int(dv2[1]))
+    # 将img2_left_translated放在stitchedResult的右侧
+    print(stitchedResult.shape[1])
+    print(img2_right.shape[1] - overlap_width1 + img1.shape[1])
+    stitchedResult[:, img2_right.shape[1] - overlap_width1 + img1.shape[1]-overlap_width2:] = img2_left_translated
+
+    # 渐变权重，对接缝进行模糊处理，左侧接缝
+    overlap_start = img2_right.shape[1] - overlap_width1
+    overlap_end = img2_right.shape[1]
+    # 计算重叠区域的权重矩阵
+    weight_matrix = np.linspace(0, 1, overlap_end - overlap_start).reshape(1, -1, 1)
+    # 使用权重矩阵对重叠区域进行加权平均
+    stitchedResult[:, overlap_start:overlap_end] = weight_matrix * img1[:,:overlap_width1] + (1 - weight_matrix) * img2_right_translated[:, overlap_start:overlap_end]
+
+    # 渐变权重，对接缝进行模糊处理，右侧接缝
+    overlap_start = img2_right.shape[1] - overlap_width1 + img1.shape[1]-overlap_width2
+    overlap_end = img2_right.shape[1] - overlap_width1 + img1.shape[1]
+    # 计算重叠区域的权重矩阵
+    weight_matrix = np.linspace(0, 1, overlap_end - overlap_start).reshape(1, -1, 1)
+    # 使用权重矩阵对重叠区域进行加权平均
+    stitchedResult[:, overlap_start:overlap_end] = weight_matrix * img2_left_translated[:, :overlap_width2] + (1 - weight_matrix) * img1[:, -overlap_width2:]
+
+    # 显示结果
+    cv2.imshow('stitchedResult', stitchedResult)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
+
+    
+    
+    
+
 
 def main():
     img1 = cv2.imread('pics2/230514_104354LeftEC.jpg')
     img2 = cv2.imread('pics2/230514_104354RightEC.jpg')
-    stitch(img1,img2)
+    # stitch(img1,img2)
+    stitch2(img1,img2)
 
 
 main()
