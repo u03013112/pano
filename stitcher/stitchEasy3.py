@@ -72,40 +72,6 @@ def get_control_points_flann(img1_full, img2_full):
 
     return np.float32(control_points1), np.float32(control_points2)
 
-
-def stitch(img1,img2):
-    # 将img2分成两部分
-    img2_left = img2[:, :int(img2.shape[1] / 2)]
-    img2_right = img2[:, int(img2.shape[1] / 2):]
-
-    # 计算img2_right 和 img1 的特征点
-    control_points1, control_points2 = get_control_points_flann(img2_right, img1)
-    overlap_width1 = img2_right.shape[1] - int(min(control_points1, key=lambda x: x[0])[0])
-    # print('control_points1:',control_points1)
-    # print('control_points2:',control_points2)
-
-    dv1 = np.mean(control_points1 - control_points2, axis=0)
-    affine_matrix1 = np.float32([[1, 0, dv1[0]], [0, 1, dv1[1]]])
-    img1_translated = cv2.warpAffine(img1, affine_matrix1, (img2_right.shape[1] + img1.shape[1]-overlap_width1, img2_right.shape[0]))
-
-    img1_translated[:, :img2_right.shape[1] - overlap_width1] = img2_right[:, :img2_right.shape[1] - overlap_width1]
-
-    # 计算img1_translated 和 img2_left 的特征点
-    control_points1, control_points2 = get_control_points_flann(img1_translated, img2_left)
-    overlap_width2 = img1_translated.shape[1] - int(min(control_points1, key=lambda x: x[0])[0])
-    # print('control_points1:',control_points1)
-    # print('control_points2:',control_points2)
-
-    dv2 = np.mean(control_points1 - control_points2, axis=0)
-    affine_matrix2 = np.float32([[1, 0, dv2[0]], [0, 1, dv2[1]]])
-    img2_translated = cv2.warpAffine(img2_left, affine_matrix2, (img2_left.shape[1] + img1_translated.shape[1]-overlap_width2, img2_left.shape[0]))
-
-    img2_translated[:, :img1_translated.shape[1] - overlap_width2] = img1_translated[:, :img1_translated.shape[1] - overlap_width2]
-
-    cv2.imshow('img2_translated', img2_translated)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
 def translate_image_y(img, y_offset):
     translated_img = np.zeros_like(img)
     if y_offset > 0:
