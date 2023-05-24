@@ -203,6 +203,8 @@ def stitch2(img1,img2):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     
+    # 结果保存
+    cv2.imwrite('pics2/stitchedResult.jpg', stitchedResult)
 
     
     
