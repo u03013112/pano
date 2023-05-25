@@ -55,6 +55,43 @@ def fisheye2Equirectangular(fisheye_image, fov_degrees, needShow=False):
 
     return equirectangular_image
 
+# 为了提高效率，把上面fisheye2Equirectangular拆分成两个函数
+def buildMap(fisheye_image, fov_degrees):
+    src_height, src_width, _ = fisheye_image.shape
+    dst_width = src_width
+    dst_height = src_height
+
+    map_x, map_y = buildmap(src_width, src_height, dst_width, dst_height, fov_degrees)
+    return map_x, map_y
+
+def remap(fisheye_image, map_x, map_y):
+    equirectangular_image = cv2.remap(fisheye_image, map_x, map_y, cv2.INTER_LINEAR)
+    return equirectangular_image
+
+import time
+def fisheye2EquirectangularDebug(fisheye_image, fov_degrees, needShow=False):
+    src_height, src_width, _ = fisheye_image.shape
+    dst_width = src_width
+    dst_height = src_height
+
+    start_time = time.time()
+    map_x, map_y = buildmap(src_width, src_height, dst_width, dst_height, fov_degrees)
+    buildmap_time = time.time() - start_time
+
+    start_time = time.time()
+    equirectangular_image = cv2.remap(fisheye_image, map_x, map_y, cv2.INTER_LINEAR)
+    remap_time = time.time() - start_time
+
+    if needShow:
+        cv2.imshow('Equirectangular Image', equirectangular_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    print("buildmap耗时：{:.2f} ms".format(buildmap_time * 1000))
+    print("remap耗时：{:.2f} ms".format(remap_time * 1000))
+
+    return equirectangular_image
+
 import os
 import sys
 if __name__ == '__main__':

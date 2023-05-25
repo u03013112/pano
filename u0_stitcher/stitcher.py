@@ -3,7 +3,8 @@ import cv2
 import json
 
 import numpy as np
-from .fisheye2Equirectangular import fisheye2Equirectangular
+from .fisheye2Equirectangular import fisheye2Equirectangular,fisheye2EquirectangularDebug
+from .fisheye2Equirectangular import buildMap,remap
 from .stitchEasy3 import stitch2,stitch3
 
 from .errors import CircleCenterNotCalibratedException, StitchNotCalibratedException
@@ -67,6 +68,7 @@ class Stitcher:
     def __init__(self) -> None:
         self.config_path = './config.json'
         self.config = self.readConfig()
+        self.tmpConfig = {}
     
     def readConfig(self):
         # 读取配置文件，配置文件在 './config.json' 中
@@ -155,6 +157,14 @@ class Stitcher:
         self.config['imgCircleRadius'] = r
         self.writeConfig()
 
+    def buildMap(self,img1):
+        if 'mapX' not in self.tmpConfig:
+            self.tmpConfig['mapX'],self.tmpConfig['mapY'] = buildMap(img1,self.config['fov'])
+        return self.tmpConfig['mapX'],self.tmpConfig['mapY']
+    def fisheye2Equirectangular(self,img1):
+        mapX,mapY = self.buildMap(img1)
+        return remap(img1,mapX,mapY)
+
     def calibStitch(self,img):
         # 进行判断，
         # 如果配置文件中没有img1，则默认左侧是img1
@@ -173,8 +183,8 @@ class Stitcher:
 
 
         # 将两张方图分别做成等距投影
-        img1EC = fisheye2Equirectangular(img1Croped, self.config['fov'])
-        img2EC = fisheye2Equirectangular(img2Croped, self.config['fov'])
+        img1EC = self.fisheye2Equirectangular(img1Croped)
+        img2EC = self.fisheye2Equirectangular(img2Croped)
 
         overlap_width1,overlap_width2,dh = stitch2(img1EC,img2EC)
         # 写配置文件
@@ -203,13 +213,53 @@ class Stitcher:
 
 
         # 将两张方图分别做成等距投影
-        img1EC = fisheye2Equirectangular(img1Croped, self.config['fov'])
-        img2EC = fisheye2Equirectangular(img2Croped, self.config['fov'])
+        img1EC = self.fisheye2Equirectangular(img1Croped)
+        img2EC = self.fisheye2Equirectangular(img2Croped)
 
         stitchedResult = stitch3(img1EC,img2EC,self.config['overlap_width1'],self.config['overlap_width2'],self.config['dh'])
 
         return stitchedResult
 
+    def stitchDebug(self, img):
+        import time
+        start_time = time.time()
+
+        if 'img1' not in self.config:
+            self.calibMainCamera()
+        if 'img1CircleCenter' not in self.config or 'img2CircleCenter' not in self.config or 'imgCircleRadius' not in self.config:
+            raise CircleCenterNotCalibratedException('请先校准圆心和半径，调用calibCircleCenter')
+        if 'overlap_width1' not in self.config or 'overlap_width2' not in self.config or 'dh' not in self.config:
+            raise StitchNotCalibratedException('请先校准拼接，调用calibStitch')
+
+        step1_time = time.time()
+
+        img1 = img[:, :int(img.shape[1] / 2)]
+        img2 = img[:, int(img.shape[1] / 2):]
+
+        step2_time = time.time()
+
+        img1Croped = crop_image(img1, (self.config['img1CircleCenter'][0], self.config['img1CircleCenter'][1], self.config['imgCircleRadius']))
+        img2Croped = crop_image(img2, (self.config['img2CircleCenter'][0], self.config['img2CircleCenter'][1], self.config['imgCircleRadius']))
+
+        step3_time = time.time()
+
+        img1EC = self.fisheye2Equirectangular(img1Croped)
+        img2EC = self.fisheye2Equirectangular(img2Croped)
+
+        step4_time = time.time()
+
+        stitchedResult = stitch3(img1EC, img2EC, self.config['overlap_width1'], self.config['overlap_width2'], self.config['dh'])
+
+        step5_time = time.time()
+
+        print("Step 1 (calibration checks) duration: {:.4f} seconds".format(step1_time - start_time))
+        print("Step 2 (split image) duration: {:.4f} seconds".format(step2_time - step1_time))
+        print("Step 3 (crop image) duration: {:.4f} seconds".format(step3_time - step2_time))
+        print("Step 4 (fisheye to equirectangular) duration: {:.4f} seconds".format(step4_time - step3_time))
+        print("Step 5 (stitching) duration: {:.4f} seconds".format(step5_time - step4_time))
+        print("All duration: {:.4f} seconds".format(step5_time - start_time))
+
+        return stitchedResult
 
 
     

@@ -1,30 +1,31 @@
 from u0_stitcher.stitcher import Stitcher
-from u0_stitcher.errors import CircleCenterNotCalibratedException,StitchNotCalibratedException
+from u0_stitcher.errors import CircleCenterNotCalibratedException, StitchNotCalibratedException
 import cv2
+import time
 
 def main():
     pano = Stitcher()
-    # img = cv2.imread('pics/230514_104354.jpg')
-
-    # 用opencv打开视频 mp4/c2.mp4
-    # 循环读取每一帧图片
-    # 打开视频文件
+    current_fps = 0
     video = cv2.VideoCapture('mp4/c2.mp4')
 
-    # 检查视频文件是否成功打开
     if not video.isOpened():
         print("无法打开视频文件")
         return
 
-    # 循环读取每一帧
+    # 获取原始视频的帧速率
+    raw_fps = int(video.get(cv2.CAP_PROP_FPS))
+
+    frame_count = 0
+    start_time = time.time()
+
     while True:
-        # 读取下一帧，返回值为布尔值（表示是否成功读取）和帧本身
         ret, frame = video.read()
 
-        # 如果成功读取帧，则处理帧
         if ret:
             try:
-                img = pano.stitch(frame)
+                # img = pano.stitch(frame)
+                img = pano.stitchDebug(frame)
+                # img = frame
             except CircleCenterNotCalibratedException as e:
                 print(e)
                 pano.calibCircleCenter(frame)
@@ -32,14 +33,26 @@ def main():
                 print(e)
                 pano.calibStitch(frame)
             else:
-                # 在此处处理帧，例如显示帧
+                frame_count += 1
+                elapsed_time = time.time() - start_time
+
+                # 每秒更新一次帧速率显示
+                if elapsed_time >= 1:
+                    current_fps = frame_count
+                    frame_count = 0
+                    start_time = time.time()
+
+                # 将帧速率文本添加到图像
+                fps_text = f"FPS: {current_fps}"
+                raw_fps_text = f"RAW FPS: {raw_fps}"
+                cv2.putText(img, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.putText(img, raw_fps_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
                 cv2.imshow('img', img)
 
-                # 按下'q'键退出循环
                 if cv2.waitKey(25) & 0xFF == ord('q'):
                     break
 
-    cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":

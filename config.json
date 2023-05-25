@@ -2,7 +2,7 @@
     "img1": "left",
     "fov": 210,
     "img1CircleCenter": [
-        300,
+        297,
         258
     ],
     "img2CircleCenter": [
@@ -11,6 +11,6 @@
     ],
     "imgCircleRadius": 258,
     "overlap_width1": 30,
-    "overlap_width2": 46,
+    "overlap_width2": 42,
     "dh": 0
 }
