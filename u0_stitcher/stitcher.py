@@ -3,8 +3,14 @@ import cv2
 import json
 
 import numpy as np
-from fisheye2Equirectangular import fisheye2Equirectangular
-from stitchEasy3 import stitch2,stitch3
+from .fisheye2Equirectangular import fisheye2Equirectangular
+from .stitchEasy3 import stitch2,stitch3
+
+from .errors import CircleCenterNotCalibratedException, StitchNotCalibratedException
+
+# 其他导入...
+
+# 您的主文件代码...
 
 def calibCircleCenter(image,x,y,r):
     # 步长暂定为图像宽高的0.5%
@@ -57,7 +63,7 @@ def crop_image(image, circle_center):
     cropped_image[top - (y - r):bottom - (y - r), left - (x - r):right - (x - r)] = image[top:bottom, left:right]
     return cropped_image
 
-class Pano:
+class Stitcher:
     def __init__(self) -> None:
         self.config_path = './config.json'
         self.config = self.readConfig()
@@ -156,7 +162,7 @@ class Pano:
         if 'img1' not in self.config:
             self.calibMainCamera()
         if 'img1CircleCenter' not in self.config or 'img2CircleCenter' not in self.config or 'imgCircleRadius' not in self.config:
-            raise Exception('请先校准圆心和半径，调用calibCircleCenter')
+            raise CircleCenterNotCalibratedException('请先校准圆心和半径，调用calibCircleCenter')
         
         # 将图片分开
         img1 = img[:, :int(img.shape[1] / 2)]
@@ -184,10 +190,10 @@ class Pano:
         if 'img1' not in self.config:
             self.calibMainCamera()
         if 'img1CircleCenter' not in self.config or 'img2CircleCenter' not in self.config or 'imgCircleRadius' not in self.config:
-            raise Exception('请先校准圆心和半径，调用calibCircleCenter')
+            raise CircleCenterNotCalibratedException('请先校准圆心和半径，调用calibCircleCenter')
         # 如果配置文件中没有overlap_width1，overlap_width2，dh的配置，那么就报错，调用者收到这个报错应该调用calibStitch
         if 'overlap_width1' not in self.config or 'overlap_width2' not in self.config or 'dh' not in self.config:
-            raise Exception('请先校准拼接，调用calibStitch')
+            raise StitchNotCalibratedException('请先校准拼接，调用calibStitch')
         # 将图片分开
         img1 = img[:, :int(img.shape[1] / 2)]
         img2 = img[:, int(img.shape[1] / 2):]
@@ -209,7 +215,7 @@ class Pano:
     
 
 if __name__ == '__main__':
-    pano = Pano()
+    pano = Stitcher()
     # pano.calibMainCamera('left')
     # pano.calibCircleCenter(cv2.imread('pics2/230514_104323.jpg'))
     # print(pano.config)
