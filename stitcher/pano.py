@@ -214,7 +214,7 @@ if __name__ == '__main__':
     # pano.calibCircleCenter(cv2.imread('pics2/230514_104323.jpg'))
     # print(pano.config)
     # pano.calibStitch(cv2.imread('pics2/230514_104354.jpg'))
-    img = pano.stitch(cv2.imread('pics2/230514_104354.jpg'))
+    img = pano.stitch(cv2.imread('../pics/230514_104354.jpg'))
     print(img.shape)
     cv2.imshow('img',img)
     cv2.waitKey(0)
