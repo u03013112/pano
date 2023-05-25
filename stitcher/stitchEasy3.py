@@ -201,14 +201,14 @@ def stitch3(img1,img2,overlap_width1,overlap_width2,dh):
     # 使用权重矩阵对重叠区域进行加权平均
     stitchedResult[:, overlap_start:overlap_end] = weight_matrix * img2_left_translated[:, :overlap_width2] + (1 - weight_matrix) * img1[:, -overlap_width2:]
 
-    # 显示结果
-    cv2.imshow('stitchedResult', stitchedResult)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # # 显示结果
+    # cv2.imshow('stitchedResult', stitchedResult)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
     
-    # 结果保存
-    cv2.imwrite('pics2/stitchedResult.jpg', stitchedResult)
-    
+    # # 结果保存
+    # cv2.imwrite('pics2/stitchedResult.jpg', stitchedResult)
+    return stitchedResult
 
 
 def main():
@@ -233,4 +233,4 @@ def main():
 
     stitch3(img3,img4,overlap_width1,overlap_width2,dh)
 
-main()
+# main()
