@@ -23,8 +23,8 @@ def main():
 
         if ret:
             try:
-                # img = pano.stitch(frame)
-                img = pano.stitchDebug(frame)
+                img = pano.stitch(frame)
+                # img = pano.stitchDebug(frame)
                 # img = frame
             except CircleCenterNotCalibratedException as e:
                 print(e)
