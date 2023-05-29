@@ -67,6 +67,10 @@ class App:
         # 是否需要手动校准
         self.needs_manual_calibration = False
 
+        # 在这里，我们添加了两个变量来存储当前的方位角和高度角
+        self.current_azimuth = 0
+        self.current_elevation = 0
+
         # 开始调度
         self.updatePer33Ms()
 
@@ -108,7 +112,8 @@ class App:
                     else:
                         if self.play_type == 'equal_angle_projection':
                             equ = Equirectangular(retFrame)
-                            retFrame = equ.GetPerspective(120, 0, 0, 785, 967)
+                            # retFrame = equ.GetPerspective(120, 0, 0, 785, 967)
+                            retFrame = equ.GetPerspective(120, self.current_azimuth, self.current_elevation, 785, 967)
 
                 frame = cv2.cvtColor(retFrame, cv2.COLOR_BGR2RGB)
                 img = Image.fromarray(frame)
@@ -181,7 +186,24 @@ class App:
         else:
             self.pano.calibMainCamera('left')
 
+    # 在这里，我们添加了一个新方法来处理键盘事件
+    def on_key_press(self, event):
+        if self.play_type == 'equal_angle_projection':
+            key = event.char.lower()
+            if key == 'w':
+                self.current_elevation += 10
+            elif key == 's':
+                self.current_elevation -= 10
+            elif key == 'a':
+                self.current_azimuth -= 10
+            elif key == 'd':
+                self.current_azimuth += 10
+            elif key == 'r':
+                self.current_azimuth = 0
+                self.current_elevation = 0
+
     def show(self):
+        self.root.bind('<KeyPress>', self.on_key_press)
         self.root.mainloop()
 
 if __name__ == "__main__":
