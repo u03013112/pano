@@ -10,6 +10,8 @@ sys.path.append(str(Path(__file__).parent.parent.resolve()))
 from u0_stitcher.stitcher import Stitcher
 from u0_stitcher.errors import CircleCenterNotCalibratedException, StitchNotCalibratedException
 
+from other.Equirec2Perspec import Equirectangular
+
 class App:
     def __init__(self,w = 1209,h = 764):
         self.pano = Stitcher()
@@ -90,7 +92,7 @@ class App:
 
                 if self.play_type == 'original':
                     retFrame = frame
-                elif self.play_type == 'equal_distance_projection':
+                elif self.play_type == 'equal_distance_projection' or self.play_type == 'equal_angle_projection':
                     # 下面这些except暂未测试，可能会有bug
                     try:
                         retFrame = self.pano.stitch(frame)
@@ -100,6 +102,10 @@ class App:
                     except StitchNotCalibratedException as e:
                         print(e)
                         self.pano.calibStitch(frame)
+                    else:
+                        if self.play_type == 'equal_angle_projection':
+                            equ = Equirectangular(retFrame)
+                            retFrame = equ.GetPerspective(120, 0, 0, 785, 967)
 
                 frame = cv2.cvtColor(retFrame, cv2.COLOR_BGR2RGB)
                 img = Image.fromarray(frame)
