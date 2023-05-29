@@ -185,13 +185,16 @@ class Stitcher:
         # 将两张方图分别做成等距投影
         img1EC = self.fisheye2Equirectangular(img1Croped)
         img2EC = self.fisheye2Equirectangular(img2Croped)
-
-        overlap_width1,overlap_width2,dh = stitch2(img1EC,img2EC)
-        # 写配置文件
-        self.config['overlap_width1'] = overlap_width1
-        self.config['overlap_width2'] = overlap_width2
-        self.config['dh'] = dh
-        self.writeConfig()
+        try:
+            overlap_width1,overlap_width2,dh = stitch2(img1EC,img2EC)
+        except Exception as e:
+            print(e)
+        else:
+            # 写配置文件
+            self.config['overlap_width1'] = overlap_width1
+            self.config['overlap_width2'] = overlap_width2
+            self.config['dh'] = dh
+            self.writeConfig()
 
     def stitch(self,img):
         # 进行判断，

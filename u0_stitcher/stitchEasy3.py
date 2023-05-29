@@ -96,6 +96,8 @@ def stitch2(img1,img2):
 
     # 计算 img1 和 img2_left 的特征点
     control_points1, control_points2 = get_control_points_flann(img1, img2_left)
+    if len(control_points1) == 0 or len(control_points2) == 0:
+        raise Exception('没有找到特征点')
     overlap_width2 = img1.shape[1] - int(min(control_points1, key=lambda x: x[0])[0]) + int(min(control_points2, key=lambda x: x[0])[0])
     # 计算 偏移均值right
     dv2 = np.mean(control_points1 - control_points2, axis=0)
