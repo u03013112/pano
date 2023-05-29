@@ -1,5 +1,5 @@
 {
-    "img1": "left",
+    "img1": "right",
     "fov": 210,
     "img1CircleCenter": [
         297,
@@ -10,7 +10,7 @@
         235
     ],
     "imgCircleRadius": 258,
-    "overlap_width1": 35,
-    "overlap_width2": 33,
+    "overlap_width1": 32,
+    "overlap_width2": 47,
     "dh": 0
 }

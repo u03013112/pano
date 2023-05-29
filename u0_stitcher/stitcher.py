@@ -175,12 +175,16 @@ class Stitcher:
             raise CircleCenterNotCalibratedException('请先校准圆心和半径，调用calibCircleCenter')
         
         # 将图片分开
-        img1 = img[:, :int(img.shape[1] / 2)]
-        img2 = img[:, int(img.shape[1] / 2):]
-        
-        img1Croped = crop_image(img1,(self.config['img1CircleCenter'][0],self.config['img1CircleCenter'][1],self.config['imgCircleRadius']))
-        img2Croped = crop_image(img2,(self.config['img2CircleCenter'][0],self.config['img2CircleCenter'][1],self.config['imgCircleRadius']))
-
+        if self.config['img1'] == 'left':
+            img1 = img[:, :int(img.shape[1] / 2)]
+            img2 = img[:, int(img.shape[1] / 2):]
+            img1Croped = crop_image(img1,(self.config['img1CircleCenter'][0],self.config['img1CircleCenter'][1],self.config['imgCircleRadius']))
+            img2Croped = crop_image(img2,(self.config['img2CircleCenter'][0],self.config['img2CircleCenter'][1],self.config['imgCircleRadius']))
+        else:
+            img1 = img[:, int(img.shape[1] / 2):]
+            img2 = img[:, :int(img.shape[1] / 2)]
+            img1Croped = crop_image(img1,(self.config['img2CircleCenter'][0],self.config['img2CircleCenter'][1],self.config['imgCircleRadius']))
+            img2Croped = crop_image(img2,(self.config['img1CircleCenter'][0],self.config['img1CircleCenter'][1],self.config['imgCircleRadius']))
 
         # 将两张方图分别做成等距投影
         img1EC = self.fisheye2Equirectangular(img1Croped)
@@ -208,12 +212,16 @@ class Stitcher:
         if 'overlap_width1' not in self.config or 'overlap_width2' not in self.config or 'dh' not in self.config:
             raise StitchNotCalibratedException('请先校准拼接，调用calibStitch')
         # 将图片分开
-        img1 = img[:, :int(img.shape[1] / 2)]
-        img2 = img[:, int(img.shape[1] / 2):]
-
-        img1Croped = crop_image(img1,(self.config['img1CircleCenter'][0],self.config['img1CircleCenter'][1],self.config['imgCircleRadius']))
-        img2Croped = crop_image(img2,(self.config['img2CircleCenter'][0],self.config['img2CircleCenter'][1],self.config['imgCircleRadius']))
-
+        if self.config['img1'] == 'left':
+            img1 = img[:, :int(img.shape[1] / 2)]
+            img2 = img[:, int(img.shape[1] / 2):]
+            img1Croped = crop_image(img1,(self.config['img1CircleCenter'][0],self.config['img1CircleCenter'][1],self.config['imgCircleRadius']))
+            img2Croped = crop_image(img2,(self.config['img2CircleCenter'][0],self.config['img2CircleCenter'][1],self.config['imgCircleRadius']))
+        else:
+            img1 = img[:, int(img.shape[1] / 2):]
+            img2 = img[:, :int(img.shape[1] / 2)]
+            img1Croped = crop_image(img1,(self.config['img2CircleCenter'][0],self.config['img2CircleCenter'][1],self.config['imgCircleRadius']))
+            img2Croped = crop_image(img2,(self.config['img1CircleCenter'][0],self.config['img1CircleCenter'][1],self.config['imgCircleRadius']))
 
         # 将两张方图分别做成等距投影
         img1EC = self.fisheye2Equirectangular(img1Croped)

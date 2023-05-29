@@ -17,14 +17,14 @@ class App:
         self.pano = Stitcher()
 
         root = tk.Tk()
-        root.title("UI设计")
+        root.title("第一版 图形界面")
         root.geometry("%dx%d" % (w,h))
 
         self.root = root
         self.left_frame = tk.Frame(root, width=302, height=h, bg='pink')
         self.left_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
-        self.info_text = tk.Text(self.left_frame, height=40, width=40)
+        self.info_text = tk.Text(self.left_frame, height=30, width=40)
         self.info_text.pack(pady=5)
         self.info_text.insert(tk.END, "欢迎光临")
 
@@ -40,8 +40,11 @@ class App:
         self.equal_angle_projection_btn = tk.Button(self.left_frame, text="等角投影", command=self.equal_angle_projection)
         self.equal_angle_projection_btn.pack(pady=5)
 
-        self.manual_calibration_btn = tk.Button(self.left_frame, text="手动校准", command=self.manual_calibration)
-        self.manual_calibration_btn.pack(pady=5)
+        self.manual_calibStitch_btn = tk.Button(self.left_frame, text="手动校准", command=self.manual_calibStutch)
+        self.manual_calibStitch_btn.pack(pady=5)
+
+        self.manual_calibMainCamera_btn = tk.Button(self.left_frame, text="更换主镜头", command=self.manual_calibMainCamera)
+        self.manual_calibMainCamera_btn.pack(pady=5)
 
         self.right_frame = tk.Frame(root, width=967, height=785)
         self.right_frame.pack(side=tk.RIGHT, padx=10, pady=10)
@@ -168,8 +171,15 @@ class App:
     def equal_angle_projection(self):
         self.play_type = 'equal_angle_projection'
 
-    def manual_calibration(self):
+    def manual_calibStutch(self):
         self.needs_manual_calibration = True
+
+    def manual_calibMainCamera(self):
+        # 这个应该封装到sttitcher中，先简单写在这吧
+        if self.pano.config['img1'] == 'left':
+            self.pano.calibMainCamera('right')
+        else:
+            self.pano.calibMainCamera('left')
 
     def show(self):
         self.root.mainloop()
