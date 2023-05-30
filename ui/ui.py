@@ -1,4 +1,6 @@
 import cv2
+import time
+import numpy as np
 import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
@@ -46,7 +48,7 @@ class App:
         self.manual_calibMainCamera_btn = tk.Button(self.left_frame, text="更换主镜头", command=self.manual_calibMainCamera)
         self.manual_calibMainCamera_btn.pack(pady=5)
 
-        self.right_frame = tk.Frame(root, width=967, height=785)
+        self.right_frame = tk.Frame(root, width=967, height=h)
         self.right_frame.pack(side=tk.RIGHT, padx=10, pady=10)
         
         self.video_label = tk.Label(self.right_frame)
@@ -113,7 +115,49 @@ class App:
                         if self.play_type == 'equal_angle_projection':
                             equ = Equirectangular(retFrame)
                             # retFrame = equ.GetPerspective(120, 0, 0, 785, 967)
-                            retFrame = equ.GetPerspective(120, self.current_azimuth, self.current_elevation, 785, 967)
+                            # print(retFrame.shape)
+                            # retFrame = equ.GetPerspective(120, self.current_azimuth, self.current_elevation, 785, 764)
+                            retFrame = equ.GetPerspective(120, self.current_azimuth, self.current_elevation, 256, 256)
+
+                            # 在右上角绘制半透明圆和箭头
+                            circle_radius = 50
+                            circle_center = (retFrame.shape[1] - circle_radius - 10, circle_radius + 10)
+                            arrow_length = 30
+                            arrow_tip = (circle_center[0], circle_center[1] - arrow_length)
+
+                            # 创建一个与retFrame大小相同的透明图层
+                            overlay = retFrame.copy()
+
+                            # 在透明图层上绘制圆形
+                            cv2.circle(overlay, circle_center, circle_radius, (255, 255, 255), -1)
+
+                            # 将透明图层添加到retFrame上，设置透明度为0.5
+                            retFrame = cv2.addWeighted(overlay, 0.5, retFrame, 0.5, 0)
+
+                            # 在retFrame上绘制箭头
+                            retFrame = cv2.arrowedLine(retFrame, circle_center, arrow_tip, (0, 0, 0), 2)
+
+                            # 绘制半透明扇形
+                            angle_start = 90 - self.current_azimuth - 60
+                            angle_end = 90 - self.current_azimuth + 60
+
+                            # 创建一个与retFrame大小相同的透明图层
+                            overlay = retFrame.copy()
+
+                            # 在透明图层上绘制扇形
+                            for angle in np.arange(angle_start, angle_end, 1):
+                                x = int(circle_center[0] + circle_radius * np.cos(np.radians(angle)))
+                                y = int(circle_center[1] - circle_radius * np.sin(np.radians(angle)))
+                                cv2.line(overlay, circle_center, (x, y), (0, 255, 0), 2)
+
+                            # 将透明图层添加到retFrame上，设置透明度为0.5
+                            retFrame = cv2.addWeighted(overlay, 0.5, retFrame, 0.5, 0)
+
+                            # 添加水平角度和垂直角度文本
+                            angle_text_h = "H: {:.1f} deg".format(self.current_azimuth)
+                            angle_text_v = "V: {:.1f} deg".format(self.current_elevation)
+                            retFrame = cv2.putText(retFrame, angle_text_h, (circle_center[0] - circle_radius, circle_center[1] + circle_radius + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 1, cv2.LINE_AA)
+                            retFrame = cv2.putText(retFrame, angle_text_v, (circle_center[0] - circle_radius, circle_center[1] + circle_radius + 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 1, cv2.LINE_AA)
 
                 frame = cv2.cvtColor(retFrame, cv2.COLOR_BGR2RGB)
                 img = Image.fromarray(frame)
@@ -128,7 +172,6 @@ class App:
                 self.update_info_text("视频播放完毕")
 
     def updatePer33Ms(self):
-        # 每秒更新30次，即30fps，这只是一个封装，为了显得干净，请将需要逐帧更新的代码写在updatePerFrame函数中
         self.updatePerFrame()
         self.root.after(33, self.updatePer33Ms)
 
@@ -188,6 +231,7 @@ class App:
 
     # 在这里，我们添加了一个新方法来处理键盘事件
     def on_key_press(self, event):
+        print("按下了", event.char)
         if self.play_type == 'equal_angle_projection':
             key = event.char.lower()
             if key == 'w':
@@ -201,10 +245,29 @@ class App:
             elif key == 'r':
                 self.current_azimuth = 0
                 self.current_elevation = 0
+            
+            # 将角度限制在-180°到180°之间，使90度保持不变，270度转换为-90度
+            if self.current_azimuth >= 180:
+                self.current_azimuth -= 360
+            elif self.current_azimuth < -180:
+                self.current_azimuth += 360
+
+            if self.current_elevation >= 180:
+                self.current_elevation -= 360
+            elif self.current_elevation < -180:
+                self.current_elevation += 360
+
 
     def show(self):
+        def on_closing():
+            print("关闭窗口")
+            self.root.destroy()
+            self.root = None
+
         self.root.bind('<KeyPress>', self.on_key_press)
+        self.root.protocol("WM_DELETE_WINDOW", on_closing)
         self.root.mainloop()
+
 
 if __name__ == "__main__":
     
